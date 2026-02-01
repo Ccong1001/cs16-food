@@ -1,0 +1,21 @@
+{
+  "title": "Ham and Cheese Pinwheels",
+  "ingredients": [
+    {
+      "name": "ham",
+      "note": "sliced",
+      "ratio": 0.5048978924751282,
+      "canonical_name": "Ham",
+      "food_key": "F004298",
+      "food_name": "Ham, steak, raw"
+    },
+    {
+      "name": "cheese",
+      "note": "cheddar, shredded",
+      "ratio": 0.49510204792022705,
+      "canonical_name": "Cheese",
+      "food_key": "F002428",
+      "food_name": "Cheese, cheddar, processed"
+    }
+  ]
+}

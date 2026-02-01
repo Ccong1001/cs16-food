@@ -62,7 +62,9 @@ class TrainArgs:
     init_from_checkpoint: str | None = None
     seed: int = 42
     skip_save: bool = False
+    save_lora_only: bool = False
     label_threshold: float = 0.5
+    dataloader_num_workers: int = 4
 
 
 @dataclass
@@ -157,6 +159,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--save_total_limit", type=int, default=TrainArgs.save_total_limit)
     parser.add_argument("--max_steps", type=int, default=TrainArgs.max_steps)
     parser.add_argument(
+        "--dataloader_num_workers",
+        type=int,
+        default=TrainArgs.dataloader_num_workers,
+        help="Number of workers for the PyTorch DataLoader.",
+    )
+    parser.add_argument(
         "--resume_from_checkpoint",
         type=str,
         default=TrainArgs.resume_from_checkpoint,
@@ -177,6 +185,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=TrainArgs.skip_save,
         help="Skip saving model/state at the end (useful for pure inference).",
+    )
+    parser.add_argument(
+        "--save_lora_only",
+        action="store_true",
+        default=TrainArgs.save_lora_only,
+        help="Save only LoRA adapters (and multitask heads) instead of full model.",
     )
     parser.add_argument(
         "--label_threshold",

@@ -93,6 +93,8 @@ class MultiTaskVLM(nn.Module):
             embed = embed * flat_mask
             denom = flat_mask.sum(dim=1).clamp(min=1e-6)
             pooled_ing = embed.sum(dim=1) / denom  # (B*M, H)
+            # 修复：确保 pooled_ing 和 ratio_head 权重 dtype 一致
+            pooled_ing = pooled_ing.to(self.ratio_head.weight.dtype)
             ing_logits = self.ratio_head(pooled_ing).view(B, M)
             ratio_logits = ing_logits
 

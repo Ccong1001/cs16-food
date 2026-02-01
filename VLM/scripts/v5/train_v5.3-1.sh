@@ -3,15 +3,15 @@ export OMP_NUM_THREADS=4
 export NPROC_PER_NODE=1
 export TOKENIZERS_PARALLELISM=false
 
-TORCHRUN=${TORCHRUN:-/mnt/hdd_1/home/cs16/miniconda3/envs/swift/bin/torchrun}
+TORCHRUN=${TORCHRUN:-/scratch/li96/zl9731/cs16/miniconda3/envs/swift/bin/torchrun}
 
 ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} vri-food/VLM/train/trainer.py \
-  --dataset /mnt/hdd_1/home/cs16/Data/dataAB_v5/vlm_train_AB_v5.jsonl \
-  --output_dir /mnt/hdd_1/home/cs16/Model/output/VLM/v5.3 \
-  --deepspeed /mnt/hdd_1/home/cs16/vri-food/VLM/train/deepspeed_zero2.json \
-  --base_model /mnt/hdd_1/home/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-merged \
-  --init_from_checkpoint /mnt/hdd_1/home/cs16/Model/output/VLM/v5.2-2 \
-  --processor_base /mnt/hdd_1/home/cs16/Model/output/VLM/v5.2-2 \
+  --dataset /scratch/li96/zl9731/cs16/Data/dataAB_v5/vlm_train_AB_v5.jsonl \
+  --output_dir /scratch/li96/zl9731/cs16/Model/output/VLM/v5.3 \
+  --deepspeed /scratch/li96/zl9731/cs16/vri-food/VLM/train/deepspeed_zero2.json \
+  --base_model /scratch/li96/zl9731/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-merged \
+  --init_from_checkpoint /scratch/li96/zl9731/cs16/Model/output/VLM/v5.2-2 \
+  --processor_base /scratch/li96/zl9731/cs16/Model/output/VLM/v5.2-2 \
   --lora_r 32 \
   --lora_alpha 64 \
   --lora_dropout 0.05 \
@@ -19,7 +19,7 @@ ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} vri-food/VLM/train/trainer.py \
   --gradient_accumulation_steps 8 \
   --enable_vision_lora true \
   --enable_text_lora true \
-  --val_dataset /mnt/hdd_1/home/cs16/Data/dataAB_v5/vlm_val_A_v5.jsonl \
+  --val_dataset /scratch/li96/zl9731/cs16/Data/dataAB_v5/vlm_val_A_v5.jsonl \
   --max_steps 14000 \
   --learning_rate 1e-5 \
   --warmup_ratio 0.1 \

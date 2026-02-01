@@ -5,6 +5,7 @@ import warnings
 from pathlib import Path
 import json
 import shutil
+import importlib
 
 import torch
 from transformers import AutoProcessor, Trainer, TrainingArguments, TrainerCallback
@@ -14,16 +15,20 @@ CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
     sys.path.append(str(CURRENT_DIR))
 
-from dataset import (  # type: ignore  # noqa: E402
-    VLMJsonlDataset,
-    VisionConfig,
-    MultiTaskCollator,
-    AMOUNT_LOWER,
-    AMOUNT_UPPER,
-    CUISINE_LABELS,
-    MEAL_LABELS,
-    DISH_LABELS,
-)
+_dataset_impl = os.environ.get("DATASET_IMPL", "dataset")
+try:
+    _dataset_module = importlib.import_module(_dataset_impl)
+except Exception:
+    _dataset_module = importlib.import_module("dataset")
+
+VLMJsonlDataset = _dataset_module.VLMJsonlDataset
+VisionConfig = _dataset_module.VisionConfig
+MultiTaskCollator = _dataset_module.MultiTaskCollator
+AMOUNT_LOWER = _dataset_module.AMOUNT_LOWER
+AMOUNT_UPPER = _dataset_module.AMOUNT_UPPER
+CUISINE_LABELS = _dataset_module.CUISINE_LABELS
+MEAL_LABELS = _dataset_module.MEAL_LABELS
+DISH_LABELS = _dataset_module.DISH_LABELS
 from model import build_model  # type: ignore  # noqa: E402
 from arguments import parse_args  # type: ignore  # noqa: E402
 
@@ -74,13 +79,34 @@ def _log_trainable_params(model: torch.nn.Module) -> None:
     )
 
 
+def _log_state_dict_prefix(model: torch.nn.Module, max_keys: int = 8) -> None:
+    keys = list(model.state_dict().keys())
+    sample = keys[:max_keys]
+    base_prefix = None
+    for k in keys:
+        for token in (".visual.", ".language_model."):
+            idx = k.find(token)
+            if idx > 0:
+                base_prefix = k[:idx]
+                break
+        if base_prefix:
+            break
+    logger.info("State dict sample keys: %s", sample)
+    logger.info("State dict inferred base prefix: %s", base_prefix)
+
+
 def _resolve_checkpoint_file(path: str) -> Path:
     p = Path(path)
     if p.is_file():
         return p
     if not p.exists():
         raise FileNotFoundError(f"init_from_checkpoint not found: {p}")
-    for name in ("model.safetensors", "pytorch_model.bin"):
+    for name in (
+        "model.safetensors",
+        "pytorch_model.bin",
+        "adapter_model.safetensors",
+        "adapter_model.bin",
+    ):
         cand = p / name
         if cand.exists():
             return cand
@@ -110,6 +136,29 @@ def init_model_from_checkpoint(model: torch.nn.Module, ckpt_path: str) -> None:
     state_dict = _load_state_dict_from_file(ckpt_file)
     model_state = model.state_dict()
 
+    # Explicit prefix remap for LoRA-only adapters saved with base_model.model.model.*
+    if any(k.startswith("base_model.model.model.") for k in state_dict):
+        state_dict = {
+            ("model.base_model.model.model." + k[len("base_model.model.model."):])
+            if k.startswith("base_model.model.model.")
+            else k: v
+            for k, v in state_dict.items()
+        }
+        logger.info("Applied checkpoint prefix remap: base_model.model.model. -> model.base_model.model.model.")
+
+    # PEFT v0.10+ stores LoRA weights under lora_A.default / lora_B.default.
+    # Older checkpoints may lack the '.default' suffix. Remap if needed.
+    if any(".lora_A." in k or ".lora_B." in k for k in state_dict.keys()):
+        def _remap_lora_default(k: str) -> str:
+            k = k.replace(".lora_A.weight", ".lora_A.default.weight")
+            k = k.replace(".lora_B.weight", ".lora_B.default.weight")
+            return k
+
+        remapped = { _remap_lora_default(k): v for k, v in state_dict.items() }
+        if remapped.keys() != state_dict.keys():
+            state_dict = remapped
+            logger.info("Applied LoRA key remap: add '.default' suffix")
+
     def _infer_base_prefix(keys) -> str | None:
         # Use a known submodule token to locate the base prefix.
         for k in keys:
@@ -136,10 +185,67 @@ def init_model_from_checkpoint(model: torch.nn.Module, ckpt_path: str) -> None:
                 state_dict = remapped
                 filtered = remapped_filtered
                 logger.info("Applied checkpoint key remap: %s -> %s", src_prefix, base_prefix)
+    # If still nothing matched, try adding common wrapper prefixes (LoRA adapter keys often miss top-level wrappers).
+    if len(filtered) < 50:
+        model_keys = set(model_state.keys())
+        best_state = state_dict
+        best_filtered = filtered
+        for prefix in ("model.", "model.base_model.", "model.base_model.model."):
+            remapped = {prefix + k: v for k, v in state_dict.items()}
+            remapped_filtered = {k: v for k, v in remapped.items() if k in model_keys}
+            if len(remapped_filtered) > len(best_filtered):
+                best_state = remapped
+                best_filtered = remapped_filtered
+                logger.info("Applied checkpoint key prefix: +%s", prefix)
+        state_dict = best_state
+        filtered = best_filtered
+    # If still nothing matched, replace everything before the core submodule token with base_prefix.
+    if len(filtered) < 50:
+        base_prefix = _infer_base_prefix(model_state.keys())
+        if base_prefix:
+            remapped = {}
+            for k, v in state_dict.items():
+                for token in (".language_model.", ".visual."):
+                    idx = k.find(token)
+                    if idx > 0:
+                        remapped[base_prefix + k[idx:]] = v
+                        break
+                else:
+                    remapped[k] = v
+            remapped_filtered = {k: v for k, v in remapped.items() if k in model_state}
+            if len(remapped_filtered) > len(filtered):
+                state_dict = remapped
+                filtered = remapped_filtered
+                logger.info("Applied checkpoint base prefix remap to: %s", base_prefix)
+    if len(filtered) == 0:
+        ckpt_lora = [k for k in state_dict.keys() if "lora_" in k.lower()][:8]
+        model_lora = [k for k in model_state.keys() if "lora_" in k.lower()][:8]
+        logger.info("Checkpoint LoRA key sample: %s", ckpt_lora)
+        logger.info("Model LoRA key sample: %s", model_lora)
+
     missing_keys, unexpected_keys = model.load_state_dict(filtered, strict=False)
     logger.info(
         "Initialized from %s (loaded=%d, missing=%d, unexpected=%d)",
         ckpt_file,
+        len(filtered),
+        len(missing_keys) if missing_keys else 0,
+        len(unexpected_keys) if unexpected_keys else 0,
+    )
+
+
+def init_heads_from_file(model: torch.nn.Module, heads_path: str) -> None:
+    p = Path(heads_path)
+    if not p.exists():
+        raise FileNotFoundError(f"init_heads not found: {p}")
+    state = torch.load(str(p), map_location="cpu")
+    if not isinstance(state, dict):
+        raise RuntimeError(f"Unsupported heads checkpoint format: {p}")
+    model_state = model.state_dict()
+    filtered = {k: v for k, v in state.items() if k in model_state}
+    missing_keys, unexpected_keys = model.load_state_dict(filtered, strict=False)
+    logger.info(
+        "Initialized heads from %s (loaded=%d, missing=%d, unexpected=%d)",
+        p,
         len(filtered),
         len(missing_keys) if missing_keys else 0,
         len(unexpected_keys) if unexpected_keys else 0,
@@ -403,6 +509,43 @@ class WeightedTrainer(Trainer):
         if unexpected_keys:
             logger.warning("Ignoring %d unexpected keys when loading checkpoint (e.g. %s)", len(unexpected_keys), unexpected_keys[:3])
         return missing_keys, unexpected_keys
+
+    def save_model(self, output_dir: str | None = None, _internal_call: bool = False):
+        if not getattr(self.args, "save_lora_only", False):
+            return super().save_model(output_dir=output_dir, _internal_call=_internal_call)
+
+        save_dir = Path(output_dir or self.args.output_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        model = self.model
+        if hasattr(model, "module"):
+            model = model.module
+
+        peft_model = getattr(model, "model", None)
+        if peft_model is not None and hasattr(peft_model, "save_pretrained"):
+            try:
+                peft_model.save_pretrained(save_dir)
+            except Exception as exc:
+                logger.warning("Failed to save LoRA adapters: %s", exc)
+
+        # Save multitask heads separately
+        head_prefixes = (
+            "cuisine_head",
+            "meal_head",
+            "dish_head",
+            "amount_head",
+            "ratio_head",
+        )
+        try:
+            heads_state = {
+                k: v.detach().cpu()
+                for k, v in model.state_dict().items()
+                if k.startswith(head_prefixes)
+            }
+            if heads_state:
+                torch.save(heads_state, save_dir / "multitask_heads.bin")
+        except Exception as exc:
+            logger.warning("Failed to save multitask heads: %s", exc)
 
 
 class JsonlLoggerCallback(TrainerCallback):
@@ -700,8 +843,21 @@ def main():
         num_dish=len(DISH_LABELS),
     )
 
+    _log_state_dict_prefix(model)
+
     if getattr(args, "init_from_checkpoint", None):
         init_model_from_checkpoint(model, args.init_from_checkpoint)
+        try:
+            ckpt_path = Path(args.init_from_checkpoint)
+            heads_path = (
+                ckpt_path / "multitask_heads.bin"
+                if ckpt_path.is_dir()
+                else ckpt_path.parent / "multitask_heads.bin"
+            )
+            if heads_path.exists():
+                init_heads_from_file(model, str(heads_path))
+        except Exception as exc:
+            logger.warning("Failed to load multitask heads: %s", exc)
 
     _log_trainable_params(model)
 
@@ -719,7 +875,7 @@ def main():
         save_total_limit=args.save_total_limit,
         bf16=torch.cuda.is_available(),
         dataloader_pin_memory=True,
-        dataloader_num_workers=4,
+        dataloader_num_workers=args.dataloader_num_workers,
         eval_strategy=eval_strategy,
         eval_steps=getattr(args, "eval_steps", None),
         deepspeed=None if not args.deepspeed else args.deepspeed,
@@ -741,6 +897,7 @@ def main():
     training_args.loss_lambda_amount = args.lambda_amount
     training_args.loss_lambda_ratio = args.lambda_ratio
     training_args.loss_lambda_hinge = args.lambda_hinge
+    training_args.save_lora_only = args.save_lora_only
     # optional phased schedule
     try:
         training_args.loss_schedule = json.loads(args.loss_schedule) if args.loss_schedule else []
