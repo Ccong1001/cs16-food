@@ -6,6 +6,8 @@
 # CUDA_VISIBLE_DEVICES=1 python /mnt/hdd_1/home/cs16/vri-food/T0/infer.py --shard 1 --world_size 8  --batch_size 128 --max_new_tokens 128
 # CUDA_VISIBLE_DEVICES=2 python /mnt/hdd_1/home/cs16/vri-food/T0/infer.py --shard 2 --world_size 8 --batch_size 128 --max_new_tokens 128
 # CUDA_VISIBLE_DEVICES=3 python /mnt/hdd_1/home/cs16/vri-food/T0/infer.py --shard 3 --world_size 8 --batch_size 128 --max_new_tokens 128
+
+# CUDA_VISIBLE_DEVICES=0 python /mnt/hdd_1/home/cs16/vri-food/T0/infer.py --shard 4 --world_size 8 --batch_size 256 --max_new_tokens 128
 """
 
 import argparse
@@ -17,9 +19,9 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from tqdm import tqdm
 
-MODEL_DIR = Path("/mnt/hdd_1/home/cs16/Model/output/T0/v1-20251221-230803/checkpoint-9917-merged")
-DEFAULT_INPUT = Path("/mnt/hdd_1/home/cs16/Data/dataB_ingredient/T0_B_infer.jsonl")
-DEFAULT_OUTPUT = Path("/mnt/hdd_1/home/cs16/Data/dataB_ingredient/T0_B_infer_result.jsonl")
+MODEL_DIR = Path("/scratch/li96/zl9731/cs16/Model/output/T0/v1-20251221-230803/checkpoint-9917-merged")
+DEFAULT_INPUT = Path("/scratch/li96/zl9731/cs16/Data/dataB_ingredient/T0_B_infer.jsonl")
+DEFAULT_OUTPUT = Path("/scratch/li96/zl9731/cs16/Data/dataB_ingredient/T0_B_infer_result.jsonl")
 
 
 def parse_args() -> argparse.Namespace:

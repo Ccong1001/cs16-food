@@ -44,6 +44,18 @@ python vri-food/VLM/infer.py \
   --batch_size 8 \
   --device_map auto \
   --max_new_tokens 2048
+
+
+CUDA_VISIBLE_DEVICES=0 \
+IMAGE_MAX_TOKEN_NUM=1024 \
+python3 /scratch/li96/zl9731/cs16/vri-food/VLM/scripts/infer.py \
+  --base_model /scratch/li96/zl9731/cs16/Model/output/VLM/v5.3-2\
+  --no_lora \
+  --input $PBS_JOBFS/data/vlm_eval_A_v5.jsonl \
+  --output /scratch/li96/zl9731/cs16/Data/dataAB_v5/test5.3-2.jsonl  \
+  --batch_size 1 \
+  --device_map 0 \
+  --max_new_tokens 512
 """
 
 

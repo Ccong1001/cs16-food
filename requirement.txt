@@ -1,7 +1,6 @@
-pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
-pip install triton==3.2.0
-pip install flash-attn==2.7.4.post1 --no-build-isolation
-# pip install transformers==4.57.1
-pip install git+https://github.com/huggingface/transformers.git@main
-pip install accelerate==1.7.0 peft==0.17.1
-# DS_BUILD_OPS=1 pip install deepspeed==0.17.1
+# recommend
+pip install 'ms-swift'
+# For evaluation usage
+pip install 'ms-swift[eval]' -U
+# Full capabilities
+pip install 'ms-swift[all]' -U
