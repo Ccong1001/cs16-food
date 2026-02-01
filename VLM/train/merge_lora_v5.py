@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+
+'''
+DATASET_IMPL=dataset_v5 python3 /scratch/li96/zl9731/cs16/vri-food/VLM/train/merge_lora_v5.py \
+  --base_model /scratch/li96/zl9731/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-bnb-int4 \
+  --checkpoint /scratch/li96/zl9731/cs16/Model/output/VLM/v5.4-3 \
+  --output_dir /scratch/li96/zl9731/cs16/Model/output/VLM/v5.4-3-merged \
+  --enable_text_lora --enable_vision_lora --use_qlora --save_safetensors
+'''
 import argparse
 import json
 import shutil
@@ -71,16 +79,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Merge LoRA weights into base checkpoint.")
     parser.add_argument(
         "--base_model",
-        default="/mnt/hdd_1/home/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-merged",
+        default="/scratch/li96/zl9731/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-bnb-int4",
     )
     parser.add_argument(
         "--checkpoint",
-        default="/mnt/hdd_1/home/cs16/Model/output/VLM/v5.2-2",
+        default="/scratch/li96/zl9731/cs16/Model/output/VLM/v5.4-3",
         help="Path to checkpoint dir or model file (model.safetensors/pytorch_model.bin).",
     )
     parser.add_argument(
         "--output_dir",
-        default="/mnt/hdd_1/home/cs16/Model/output/VLM/v5.2-merged",
+        default="/scratch/li96/zl9731/cs16/Model/output/VLM/v5.4-3-merged",
     )
     parser.add_argument("--lora_r", type=int, default=32)
     parser.add_argument("--lora_alpha", type=int, default=64)
@@ -127,7 +135,14 @@ def main() -> None:
                     return k[:idx]
         return None
     
-    filtered = {k: v for k, v in state_dict.items() if k in model_state}
+    # QLoRA checkpoints may contain quantized base_layer weights (shape [N, 1])
+    # which cannot be loaded into full modules. Skip base_layer weights and
+    # keep LoRA + heads only.
+    filtered = {
+        k: v
+        for k, v in state_dict.items()
+        if k in model_state and ".base_layer." not in k
+    }
     # If almost nothing matched, try remapping merged checkpoints (model.model.* -> model.base_model.model.*).
     if len(filtered) < 50:
         base_prefix = _infer_base_prefix(model_state.keys())

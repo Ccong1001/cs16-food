@@ -21,7 +21,7 @@ ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} /scratch/li96/zl9731/cs16/vri-foo
   --output_dir /scratch/li96/zl9731/cs16/Model/output/VLM/v6.4-1 \
   --deepspeed /scratch/li96/zl9731/cs16/vri-food/VLM/train/deepspeed_zero2.json \
   --base_model /scratch/li96/zl9731/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-merged \
-  --init_from_checkpoint /mnt/hdd_1/home/cs16/Model/output/VLM/v6.3 \
+  --init_from_checkpoint /scratch/li96/zl9731/cs16/Model/output/VLM/v6.3 \
   --save_lora_only \
   --lora_r 32 \
   --lora_alpha 64 \

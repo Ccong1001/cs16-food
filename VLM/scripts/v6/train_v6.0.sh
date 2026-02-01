@@ -20,23 +20,23 @@ ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} /scratch/li96/zl9731/cs16/vri-foo
   --val_dataset /scratch/li96/zl9731/cs16/Data/dataAB_v5/vlm_val_A_v5.jsonl \
   --output_dir /scratch/li96/zl9731/cs16/Model/output/VLM/v6.0 \
   --deepspeed /scratch/li96/zl9731/cs16/vri-food/VLM/train/deepspeed_zero2.json \
-  --base_model /scratch/li96/zl9731/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-merged \
+  --base_model /scratch/li96/zl9731/cs16/Model/Qwen3-VL-8B-Instruct \
   --save_lora_only \
   --lora_r 32 \
   --lora_alpha 64 \
   --lora_dropout 0.05 \
   --train_batch_size 128 \
   --gradient_accumulation_steps 1 \
-  --enable_vision_lora false \
+  --enable_vision_lora true \
   --enable_text_lora true \
   --epochs 2 \
-  --learning_rate 1e-5 \
-  --warmup_ratio 0.1 \
+  --learning_rate 5e-6 \
+  --warmup_ratio 0.03 \
   --logging_steps 100 \
   --eval_steps 1000 \
   --save_steps 4000 \
   --save_total_limit 3 \
-  --lambda_lm 0 --lambda_lm_title 0 --lambda_lm_ing 0 \
-  --lambda_cuisine 0.3 --lambda_meal 0.3 --lambda_dish 1.0 \
+  --lambda_lm 1.0 --lambda_lm_title 0.3 --lambda_lm_ing 0.1 \
+  --lambda_cuisine 0.0 --lambda_meal 0.0 --lambda_dish 0.0 \
   --lambda_amount 0.0 --lambda_ratio 0.0 --lambda_hinge 0.0 \
   --loss_schedule "$LOSS_SCHEDULE"

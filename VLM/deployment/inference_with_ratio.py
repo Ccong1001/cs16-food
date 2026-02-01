@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MultiTaskVLM 推理代码 - 支持提取 ratio 信息
-
-用途：
-1. 加载完整的 MultiTaskVLM 模型（包含分类头）
-2. 同时获取生成文本和 ratio logits
-3. 用于需要食材比例信息的场景
+LM + ratio inference
 """
 
 import sys
@@ -112,6 +107,16 @@ def load_multitask_model(
         trust_remote_code=True
     )
 
+    # 加载 LoRA adapter（如果 checkpoint 目录包含 adapter 配置）
+    adapter_config = checkpoint_path / "adapter_config.json"
+    if adapter_config.exists():
+        try:
+            base_model = PeftModel.from_pretrained(base_model, str(checkpoint_path))
+            base_model = base_model.merge_and_unload()
+            print("✓ 加载 LoRA adapter 并合并到基座")
+        except Exception as exc:
+            print(f"⚠️  LoRA adapter 加载失败: {exc}")
+
     # 包装为 MultiTaskVLM
     hidden_size = getattr(base_model.config, "hidden_size", None)
     if hidden_size is None and hasattr(base_model.config, "text_config"):
@@ -127,28 +132,38 @@ def load_multitask_model(
         num_amount_levels=5
     )
 
-    # 加载分类头权重
-    state_dict_path = checkpoint_path / "model.safetensors"
-    if not state_dict_path.exists():
-        state_dict_path = checkpoint_path / "pytorch_model.bin"
-    if state_dict_path.exists():
-        print(f"加载分类头权重: {state_dict_path}")
-        if state_dict_path.suffix == ".safetensors":
-            from safetensors.torch import load_file
-            state_dict = load_file(str(state_dict_path))
+    # 加载分类头权重（优先 multitask_heads.bin，其次从 model.safetensors/pytorch_model.bin 过滤）
+    heads_path = checkpoint_path / "multitask_heads.bin"
+    if heads_path.exists():
+        print(f"加载分类头权重: {heads_path}")
+        state_dict = torch.load(str(heads_path), map_location="cpu")
+        if isinstance(state_dict, dict) and state_dict:
+            model.load_state_dict(state_dict, strict=False)
+            print(f"✓ 加载了 {len(state_dict)} 个分类头参数")
         else:
-            state_dict = torch.load(str(state_dict_path), map_location="cpu")
-        head_state = {
-            k: v for k, v in state_dict.items()
-            if any(h in k for h in ["cuisine_head", "meal_head", "dish_head", "amount_head", "ratio_head"])
-        }
-        if head_state:
-            model.load_state_dict(head_state, strict=False)
-            print(f"✓ 加载了 {len(head_state)} 个分类头参数")
-        else:
-            print("⚠️  警告: 未找到分类头权重，将使用随机初始化")
+            print("⚠️  警告: multitask_heads.bin 为空或格式不正确，将使用随机初始化")
     else:
-        print(f"⚠️  警告: 未找到权重文件: {state_dict_path}")
+        state_dict_path = checkpoint_path / "model.safetensors"
+        if not state_dict_path.exists():
+            state_dict_path = checkpoint_path / "pytorch_model.bin"
+        if state_dict_path.exists():
+            print(f"加载分类头权重: {state_dict_path}")
+            if state_dict_path.suffix == ".safetensors":
+                from safetensors.torch import load_file
+                state_dict = load_file(str(state_dict_path))
+            else:
+                state_dict = torch.load(str(state_dict_path), map_location="cpu")
+            head_state = {
+                k: v for k, v in state_dict.items()
+                if any(h in k for h in ["cuisine_head", "meal_head", "dish_head", "amount_head", "ratio_head"])
+            }
+            if head_state:
+                model.load_state_dict(head_state, strict=False)
+                print(f"✓ 加载了 {len(head_state)} 个分类头参数")
+            else:
+                print("⚠️  警告: 未找到分类头权重，将使用随机初始化")
+        else:
+            print(f"⚠️  警告: 未找到权重文件: {state_dict_path}")
 
     model = model.to(device)
     model = model.to(dtype)
