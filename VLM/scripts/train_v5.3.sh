@@ -1,6 +1,6 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export OMP_NUM_THREADS=4
-export NPROC_PER_NODE=1
+export NPROC_PER_NODE=4
 export TOKENIZERS_PARALLELISM=false
 
 TORCHRUN=${TORCHRUN:-/mnt/hdd_1/home/cs16/miniconda3/envs/swift/bin/torchrun}

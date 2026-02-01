@@ -1,17 +1,32 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export OMP_NUM_THREADS=4
-export NPROC_PER_NODE=1
+export NPROC_PER_NODE=4
 export TOKENIZERS_PARALLELISM=false
 
 TORCHRUN=${TORCHRUN:-/mnt/hdd_1/home/cs16/miniconda3/envs/swift/bin/torchrun}
 
+
+LOSS_SCHEDULE='[
+  {
+    "start": 0,"end": 8000,
+    "lambda_lm": 0.8,"lambda_lm_title": 0.05,"lambda_lm_ing": 1.0,
+    "lambda_amount": 0.15,"lambda_ratio": 0.2,"lambda_hinge": 0.1
+  },
+  {
+    "start": 8000,"end": 14000,
+    "lambda_lm": 0.5,"lambda_lm_title": 0.03,"lambda_lm_ing": 1.0,
+    "lambda_amount": 0.1,"lambda_ratio": 0.5,"lambda_hinge": 0.8
+  }
+]'
+
+
 ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} vri-food/VLM/train/trainer.py \
   --dataset /mnt/hdd_1/home/cs16/Data/dataAB_v5/vlm_train_AB_v5.jsonl \
-  --output_dir /mnt/hdd_1/home/cs16/Model/output/VLM/v5.3 \
+  --output_dir /mnt/hdd_1/home/cs16/Model/output/VLM/v5.4 \
   --deepspeed /mnt/hdd_1/home/cs16/vri-food/VLM/train/deepspeed_zero2.json \
   --base_model /mnt/hdd_1/home/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-merged \
-  --init_from_checkpoint /mnt/hdd_1/home/cs16/Model/output/VLM/v5.2-2 \
-  --processor_base /mnt/hdd_1/home/cs16/Model/output/VLM/v5.2-2 \
+  --init_from_checkpoint /mnt/hdd_1/home/cs16/Model/output/VLM/v5.3 \
+  --processor_base /mnt/hdd_1/home/cs16/Model/output/VLM/v5.3 \
   --lora_r 32 \
   --lora_alpha 64 \
   --lora_dropout 0.05 \
@@ -27,6 +42,7 @@ ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} vri-food/VLM/train/trainer.py \
   --eval_steps 1000 \
   --save_steps 4000 \
   --save_total_limit 3 \
-  --lambda_lm 1.0 --lambda_lm_title 0.1 --lambda_lm_ing 1.0 \
-  --lambda_cuisine 0.1 --lambda_meal 0.1 --lambda_dish 0.5 \
-  --lambda_amount 1.0 --lambda_ratio 1.0 --lambda_hinge 1.0 \
+  --lambda_lm 1.0 --lambda_lm_title 0.05 --lambda_lm_ing 1.0 \
+  --lambda_cuisine 0.0 --lambda_meal 0.0 --lambda_dish 0.0 \
+  --lambda_amount 0.1 --lambda_ratio 0.5 --lambda_hinge 0.8 \
+  --loss_schedule "$LOSS_SCHEDULE"
