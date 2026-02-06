@@ -1,21 +1,53 @@
 {
-  "title": "Ham and Cheese Pinwheels",
+  "title": "Chicken Salad",
   "ingredients": [
     {
-      "name": "ham",
-      "note": "sliced",
-      "ratio": 0.5048978924751282,
-      "canonical_name": "Ham",
-      "food_key": "F004298",
-      "food_name": "Ham, steak, raw"
+      "name": "chicken",
+      "note": "cooked, shredded",
+      "ratio": 0.4103246033191681,
+      "canonical_name": "Chicken",
+      "food_key": "F009831",
+      "food_name": "Chicken, mince, cooked"
     },
     {
-      "name": "cheese",
-      "note": "cheddar, shredded",
-      "ratio": 0.49510204792022705,
-      "canonical_name": "Cheese",
-      "food_key": "F002428",
-      "food_name": "Cheese, cheddar, processed"
+      "name": "mayonnaise",
+      "note": "",
+      "ratio": 0.19344542920589447,
+      "canonical_name": "Mayonnaise",
+      "food_key": "F005435",
+      "food_name": "Mayonnaise, homemade"
+    },
+    {
+      "name": "dill",
+      "note": "chopped",
+      "ratio": 0.1502513885498047,
+      "canonical_name": "Dill",
+      "food_key": "F003509",
+      "food_name": "Dill, fresh, raw"
+    },
+    {
+      "name": "lemon",
+      "note": "finely grated",
+      "ratio": 0.18346372246742249,
+      "canonical_name": "Lemon",
+      "food_key": "F005175",
+      "food_name": "Lemon, preserved"
+    },
+    {
+      "name": "salt",
+      "note": "",
+      "ratio": 0.017653824761509895,
+      "canonical_name": "Salt",
+      "food_key": "F007879",
+      "food_name": "Salt, table, non-iodised"
+    },
+    {
+      "name": "pepper",
+      "note": "",
+      "ratio": 0.04486103728413582,
+      "canonical_name": "Pepper",
+      "food_key": "F006618",
+      "food_name": "Pepper, black or white, ground"
     }
   ]
 }

@@ -79,6 +79,13 @@ def _log_trainable_params(model: torch.nn.Module) -> None:
     )
 
 
+def _set_heads_trainable(model: torch.nn.Module, train_heads: bool) -> None:
+    head_tokens = ("cuisine_head", "meal_head", "dish_head", "amount_head", "ratio_head")
+    for name, p in model.named_parameters():
+        if any(tok in name for tok in head_tokens):
+            p.requires_grad = bool(train_heads)
+
+
 def _log_state_dict_prefix(model: torch.nn.Module, max_keys: int = 8) -> None:
     keys = list(model.state_dict().keys())
     sample = keys[:max_keys]
@@ -231,6 +238,10 @@ def init_model_from_checkpoint(model: torch.nn.Module, ckpt_path: str) -> None:
         len(missing_keys) if missing_keys else 0,
         len(unexpected_keys) if unexpected_keys else 0,
     )
+    if missing_keys:
+        logger.info("Missing keys sample from load_state_dict(adapter): %s", missing_keys[:20])
+    if unexpected_keys:
+        logger.info("Unexpected keys sample from load_state_dict(adapter): %s", unexpected_keys[:20])
 
 
 def init_heads_from_file(model: torch.nn.Module, heads_path: str) -> None:
@@ -250,6 +261,10 @@ def init_heads_from_file(model: torch.nn.Module, heads_path: str) -> None:
         len(missing_keys) if missing_keys else 0,
         len(unexpected_keys) if unexpected_keys else 0,
     )
+    if missing_keys:
+        logger.info("Missing keys sample from load_state_dict(heads): %s", missing_keys[:20])
+    if unexpected_keys:
+        logger.info("Unexpected keys sample from load_state_dict(heads): %s", unexpected_keys[:20])
 
 
 class WeightedTrainer(Trainer):
@@ -266,6 +281,19 @@ class WeightedTrainer(Trainer):
         "loss_ratio",
         "loss_hinge",
     )
+
+    def create_optimizer(self):
+        optimizer = super().create_optimizer()
+        if optimizer is None:
+            return optimizer
+        non_empty = [g for g in optimizer.param_groups if len(g.get("params", [])) > 0]
+        if len(non_empty) != len(optimizer.param_groups):
+            logger.warning(
+                "Dropping %d empty optimizer param groups.",
+                len(optimizer.param_groups) - len(non_empty),
+            )
+            optimizer.param_groups = non_empty
+        return optimizer
 
     def _reset_eval_component_metrics(self):
         self._eval_component_sums = {k: 0.0 for k in self.COMPONENT_KEYS}
@@ -859,6 +887,9 @@ def main():
         except Exception as exc:
             logger.warning("Failed to load multitask heads: %s", exc)
 
+    if not getattr(args, "train_heads", True):
+        _set_heads_trainable(model, False)
+
     _log_trainable_params(model)
 
     eval_strategy = "steps" if eval_dataset is not None else "no"
@@ -898,6 +929,7 @@ def main():
     training_args.loss_lambda_ratio = args.lambda_ratio
     training_args.loss_lambda_hinge = args.lambda_hinge
     training_args.save_lora_only = args.save_lora_only
+    training_args.train_heads = args.train_heads
     # optional phased schedule
     try:
         training_args.loss_schedule = json.loads(args.loss_schedule) if args.loss_schedule else []

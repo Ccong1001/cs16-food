@@ -1,15 +1,30 @@
 {
-  "title": "Ham and Cheese Pinwheels",
+  "title": "Chicken Salad",
   "ingredients": [
     {
-      "name": "ham",
-      "note": "sliced",
-      "ratio": 0.5048978924751282
+      "name": "chicken",
+      "note": "cooked, shredded",
+      "ratio": 0.38772159814834595
     },
     {
-      "name": "cheese",
-      "note": "cheddar, shredded",
-      "ratio": 0.49510204792022705
+      "name": "mayonnaise",
+      "note": "",
+      "ratio": 0.18278935551643372
+    },
+    {
+      "name": "onion",
+      "note": "chopped",
+      "ratio": 0.1256905347108841
+    },
+    {
+      "name": "celery",
+      "note": "chopped",
+      "ratio": 0.1618238389492035
+    },
+    {
+      "name": "dill",
+      "note": "chopped",
+      "ratio": 0.14197468757629395
     }
   ]
 }

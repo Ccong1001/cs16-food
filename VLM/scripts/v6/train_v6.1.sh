@@ -1,6 +1,6 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export OMP_NUM_THREADS=4
-export NPROC_PER_NODE=1
+export NPROC_PER_NODE=4
 export TOKENIZERS_PARALLELISM=false
 export TRITON_CACHE_DIR=$PBS_JOBFS/triton-cache
 
@@ -23,21 +23,23 @@ ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} /scratch/li96/zl9731/cs16/vri-foo
   --base_model /scratch/li96/zl9731/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-merged \
   --init_from_checkpoint /scratch/li96/zl9731/cs16/Model/output/VLM/v6.0 \
   --save_lora_only \
+  --train_heads false \
   --lora_r 32 \
   --lora_alpha 64 \
   --lora_dropout 0.05 \
-  --train_batch_size 128 \
-  --gradient_accumulation_steps 1 \
-  --enable_vision_lora false \
+  --train_batch_size 64 \
+  --gradient_accumulation_steps 2 \
+  --enable_vision_lora true \
   --enable_text_lora true \
-  --epochs 1 \
+  --train_heads false \
+  --epochs 2 \
   --learning_rate 1e-5 \
   --warmup_ratio 0.1 \
   --logging_steps 100 \
   --eval_steps 1000 \
   --save_steps 4000 \
   --save_total_limit 3 \
-  --lambda_lm 1.0 --lambda_lm_title 0.3 --lambda_lm_ing 0.1 \
-  --lambda_cuisine 0.3 --lambda_meal 0.3 --lambda_dish 1.0 \
+  --lambda_lm 1.0 --lambda_lm_title 0.3 --lambda_lm_ing 1.0 \
+  --lambda_cuisine 0.0 --lambda_meal 0.0 --lambda_dish 0.0 \
   --lambda_amount 0.0 --lambda_ratio 0.0 --lambda_hinge 0.0 \
   --loss_schedule "$LOSS_SCHEDULE"

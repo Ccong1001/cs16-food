@@ -233,6 +233,7 @@ def build_model(
         return suffixes
 
     suffixes = _available_module_suffixes(base)
+    logger.info("Available module suffixes (sample): %s", sorted(suffixes)[:120])
 
     target_modules: list[str] = []
     if enable_text_lora:
@@ -254,6 +255,7 @@ def build_model(
     # 防御：如果两个都关了，至少保持文本 LoRA 以避免空列表
     if not target_modules:
         target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+    logger.info("Selected LoRA target_modules: %s", target_modules)
 
     lora_config = LoraConfig(
         r=lora_r,

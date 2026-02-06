@@ -65,6 +65,7 @@ class TrainArgs:
     save_lora_only: bool = False
     label_threshold: float = 0.5
     dataloader_num_workers: int = 4
+    train_heads: bool = True
 
 
 @dataclass
@@ -163,6 +164,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=TrainArgs.dataloader_num_workers,
         help="Number of workers for the PyTorch DataLoader.",
+    )
+    parser.add_argument(
+        "--train_heads",
+        type=str2bool,
+        default=TrainArgs.train_heads,
+        help="Whether to train multitask heads (true/false).",
     )
     parser.add_argument(
         "--resume_from_checkpoint",

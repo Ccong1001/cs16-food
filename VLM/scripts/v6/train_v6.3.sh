@@ -30,14 +30,14 @@ ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} /scratch/li96/zl9731/cs16/vri-foo
   --gradient_accumulation_steps 1 \
   --enable_vision_lora true \
   --enable_text_lora true \
-  --epochs 1 \
+  --epochs 2 \
   --learning_rate 1e-5 \
   --warmup_ratio 0.1 \
   --logging_steps 100 \
   --eval_steps 1000 \
   --save_steps 4000 \
   --save_total_limit 3 \
-  --lambda_lm 1.0 --lambda_lm_title 0.3 --lambda_lm_ing 1.0 \
-  --lambda_cuisine 0.05 --lambda_meal 0.05 --lambda_dish 0.2 \
-  --lambda_amount 0.0 --lambda_ratio 0.0 --lambda_hinge 0.0 \
+  --lambda_lm 1.0 --lambda_lm_title 0.1 --lambda_lm_ing 1.0 \
+  --lambda_cuisine 0.001 --lambda_meal 0.001 --lambda_dish 0.01 \
+  --lambda_amount 0.15 --lambda_ratio 0.2 --lambda_hinge 0.1 \
   --loss_schedule "$LOSS_SCHEDULE"

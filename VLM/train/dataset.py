@@ -226,11 +226,10 @@ class MultiTaskCollator:
         self.processor = processor
         self.tokenizer = processor.tokenizer
         self.lambda_lm_ing = lambda_lm_ing
-        # Tokens used to locate ingredient段；用于提升 loss_ing 覆盖范围
-        self._ingredient_tokens = self.tokenizer.encode("Ingredients:", add_special_tokens=False)
+        # Tokens used to locate ingredient 段（JSON 中的 "ingredients" key）
         # 兼容可能的前置空格/换行，增加备用匹配模式
         self._ingredient_patterns = []
-        for s in ("Ingredients:", "\nIngredients:", " Ingredients:"):
+        for s in ("\"ingredients\"", "\"ingredients\":", "\"ingredients\": ", "\n\"ingredients\"", " \"ingredients\""):
             ids = self.tokenizer.encode(s, add_special_tokens=False)
             if ids:
                 self._ingredient_patterns.append(ids)
@@ -289,13 +288,13 @@ class MultiTaskCollator:
                                 break
                         if ing_start != -1:
                             break
-                    # 若未匹配上，按文本长度回退：分割 Title / Ingredients 段
+                    # 若未匹配上，按文本长度回退：定位 JSON 的 "ingredients" key
                     if ing_start == -1:
                         text = assistant_texts[i] if i < len(assistant_texts) else ""
-                        if text and "Ingredients:" in text:
-                            title_prefix = text.split("Ingredients:", 1)[0]
-                            title_ids = self.tokenizer.encode(title_prefix, add_special_tokens=False)
-                            ing_start = start_pos + min(len(title_ids), seq_len - start_pos)
+                        if text and "\"ingredients\"" in text:
+                            prefix = text.split("\"ingredients\"", 1)[0] + "\"ingredients\""
+                            prefix_ids = self.tokenizer.encode(prefix, add_special_tokens=False)
+                            ing_start = start_pos + min(len(prefix_ids), seq_len - start_pos)
                     if ing_start != -1:
                         lm_weights[i, ing_start:] = 2.0
 
