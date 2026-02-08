@@ -1,53 +1,45 @@
 {
-  "title": "Chicken Salad",
+  "title": "Corn dogs",
   "ingredients": [
     {
-      "name": "chicken",
-      "note": "cooked, shredded",
-      "ratio": 0.4103246033191681,
-      "canonical_name": "Chicken",
-      "food_key": "F009831",
-      "food_name": "Chicken, mince, cooked"
+      "name": "dog",
+      "note": "hot",
+      "ratio": 0.20726259052753448,
+      "canonical_name": "Ham",
+      "food_key": "F004298",
+      "food_name": "Ham, steak, raw"
     },
     {
-      "name": "mayonnaise",
+      "name": "flour",
+      "note": "plain",
+      "ratio": 0.22562775015830994,
+      "canonical_name": "Flour",
+      "food_key": "F004007",
+      "food_name": "Flour, wheat, white, plain"
+    },
+    {
+      "name": "egg",
+      "note": "beaten",
+      "ratio": 0.21895301342010498,
+      "canonical_name": "Egg",
+      "food_key": "F003729",
+      "food_name": "Egg, chicken, whole, raw"
+    },
+    {
+      "name": "milk",
       "note": "",
-      "ratio": 0.19344542920589447,
-      "canonical_name": "Mayonnaise",
-      "food_key": "F005435",
-      "food_name": "Mayonnaise, homemade"
+      "ratio": 0.28035300970077515,
+      "canonical_name": "Milk",
+      "food_key": "F005614",
+      "food_name": "Milk, cow, fluid, reduced fat (~1%)"
     },
     {
-      "name": "dill",
-      "note": "chopped",
-      "ratio": 0.1502513885498047,
-      "canonical_name": "Dill",
-      "food_key": "F003509",
-      "food_name": "Dill, fresh, raw"
-    },
-    {
-      "name": "lemon",
-      "note": "finely grated",
-      "ratio": 0.18346372246742249,
-      "canonical_name": "Lemon",
-      "food_key": "F005175",
-      "food_name": "Lemon, preserved"
-    },
-    {
-      "name": "salt",
+      "name": "oil",
       "note": "",
-      "ratio": 0.017653824761509895,
-      "canonical_name": "Salt",
-      "food_key": "F007879",
-      "food_name": "Salt, table, non-iodised"
-    },
-    {
-      "name": "pepper",
-      "note": "",
-      "ratio": 0.04486103728413582,
-      "canonical_name": "Pepper",
-      "food_key": "F006618",
-      "food_name": "Pepper, black or white, ground"
+      "ratio": 0.06780364364385605,
+      "canonical_name": "Oil",
+      "food_key": "F009855",
+      "food_name": "Oil, hemp"
     }
   ]
 }

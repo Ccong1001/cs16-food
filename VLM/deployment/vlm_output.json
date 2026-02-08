@@ -1,35 +1,30 @@
 {
-  "title": "Chicken Salad",
+  "title": "Corn dogs",
   "ingredients": [
     {
-      "name": "chicken",
-      "note": "cooked, shredded",
-      "ratio": 0.4103246033191681
+      "name": "dog",
+      "note": "hot",
+      "ratio": 0.20726259052753448
     },
     {
-      "name": "mayonnaise",
+      "name": "flour",
+      "note": "plain",
+      "ratio": 0.22562775015830994
+    },
+    {
+      "name": "egg",
+      "note": "beaten",
+      "ratio": 0.21895301342010498
+    },
+    {
+      "name": "milk",
       "note": "",
-      "ratio": 0.19344542920589447
+      "ratio": 0.28035300970077515
     },
     {
-      "name": "dill",
-      "note": "chopped",
-      "ratio": 0.1502513885498047
-    },
-    {
-      "name": "lemon",
-      "note": "finely grated",
-      "ratio": 0.18346372246742249
-    },
-    {
-      "name": "salt",
+      "name": "oil",
       "note": "",
-      "ratio": 0.017653824761509895
-    },
-    {
-      "name": "pepper",
-      "note": "",
-      "ratio": 0.04486103728413582
+      "ratio": 0.06780364364385605
     }
   ]
 }

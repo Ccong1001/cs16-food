@@ -13,7 +13,7 @@ Set DATASET_IMPL and output JSON:
 BASE_DIR=/mnt/hdd_1/home/cs16 \
 DATASET_IMPL=dataset_v5 python3 /mnt/hdd_1/home/cs16/vri-food/VLM/deployment/inference_with_ratio.py \
   /mnt/hdd_1/home/cs16/Model/output/VLM/v5.4-3 \
-  /mnt/ssd_2/cs16/recipes-with-nutrition/images_448/1137_18f837b4bb3d1e400979a7957bd5ece8.jpg \
+  /mnt/hdd_1/home/cs16/demo_webpage/food_img/Corndogs-7832ef6.jpg \
   --base_model /mnt/hdd_1/home/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-merged \
   --device cuda:0 \
   --output_json /mnt/hdd_1/home/cs16/vri-food/VLM/deployment/vlm_output.json
