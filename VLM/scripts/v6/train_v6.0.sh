@@ -39,5 +39,5 @@ ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} /scratch/li96/zl9731/cs16/vri-foo
   --save_total_limit 3 \
   --lambda_lm 1.0 --lambda_lm_title 0.3 --lambda_lm_ing 0.1 \
   --lambda_cuisine 0.0 --lambda_meal 0.0 --lambda_dish 0.0 \
-  --lambda_amount 0.0 --lambda_ratio 0.0 --lambda_hinge 0.0 \
+  --lambda_amount 0.0 --lambda_ratio 0.0 --lambda_hinge 0.0 --lambda_total_weight 0.0 \
   --loss_schedule "$LOSS_SCHEDULE"

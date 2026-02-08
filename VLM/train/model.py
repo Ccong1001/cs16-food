@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class MultiTaskVLM(nn.Module):
-    """Qwen3-VL with extra heads for cuisine/meal/dish, amount ordinal, ratio distribution."""
+    """Qwen3-VL with extra heads for cuisine/meal/dish, amount ordinal, ratio distribution, total_weight."""
 
     def __init__(
         self,
@@ -38,6 +38,9 @@ class MultiTaskVLM(nn.Module):
 
         # Ratio head: per-ingredient logits from ingredient embeddings.
         self.ratio_head = nn.Linear(hidden_size, 1)
+
+        # Total weight head: per-sample regression from pooled embedding.
+        self.total_weight_head = nn.Linear(hidden_size, 1)
 
     # 兼容 transformers Trainer 的 gradient_checkpointing_enable 调用
     def gradient_checkpointing_enable(self, **kwargs):
@@ -81,6 +84,7 @@ class MultiTaskVLM(nn.Module):
         cuisine_logits = self.cuisine_head(pooled)
         meal_logits = self.meal_head(pooled)
         dish_logits = self.dish_head(pooled)
+        total_weight_logits = self.total_weight_head(pooled).squeeze(-1)
         ratio_logits = None
         amount_logits = None
         if ingredient_token_ids is not None and ingredient_token_mask is not None:
@@ -110,6 +114,7 @@ class MultiTaskVLM(nn.Module):
             "dish_logits": dish_logits,
             "amount_logits": amount_logits,
             "ratio_logits": ratio_logits,
+            "total_weight_logits": total_weight_logits,
             "hidden_states": hidden,
         }
 

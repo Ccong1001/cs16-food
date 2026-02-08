@@ -79,6 +79,7 @@ class LossArgs:
     lambda_amount: float = 0
     lambda_ratio: float = 0
     lambda_hinge: float = 0
+    lambda_total_weight: float = 0
     # loss_schedule: JSON list，可按 step 切换权重，例如：
     # [{"start":0,"end":2000,"lambda_ratio":0.5},{"start":2000,"lambda_ratio":1.0}]
     loss_schedule: str = ""
@@ -216,6 +217,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lambda_amount", type=float, default=LossArgs.lambda_amount)
     parser.add_argument("--lambda_ratio", type=float, default=LossArgs.lambda_ratio)
     parser.add_argument("--lambda_hinge", type=float, default=LossArgs.lambda_hinge)
+    parser.add_argument("--lambda_total_weight", type=float, default=LossArgs.lambda_total_weight)
     parser.add_argument(
         "--loss_schedule",
         type=str,

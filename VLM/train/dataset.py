@@ -191,6 +191,14 @@ class VLMJsonlDataset(Dataset):
 
         assistant_text = _build_assistant_text(title, ing_list[:MAX_INGREDIENTS])
 
+        total_weight_val = raw.get("total_weight", None)
+        if isinstance(total_weight_val, (int, float)):
+            total_weight = float(total_weight_val)
+            total_weight_mask = 1.0
+        else:
+            total_weight = 0.0
+            total_weight_mask = 0.0
+
         image_path = raw.get("images", [None])[0]
         image = _safe_open_image(image_path) if image_path else Image.new("RGB", (224, 224))
 
@@ -216,6 +224,8 @@ class VLMJsonlDataset(Dataset):
             "ingredient_ratio": ing_ratio,
             "ingredient_mask": ing_mask,
             "ingredient_texts": ing_texts,
+            "total_weight": total_weight,
+            "total_weight_mask": total_weight_mask,
         }
 
 
@@ -308,6 +318,12 @@ class MultiTaskCollator:
         amount = stack("ingredient_amount")
         ratio = stack("ingredient_ratio")
         ing_mask = stack("ingredient_mask")
+        total_weight = torch.tensor(
+            [float(ex.get("total_weight", 0.0)) for ex in batch], dtype=torch.float
+        )
+        total_weight_mask = torch.tensor(
+            [float(ex.get("total_weight_mask", 0.0)) for ex in batch], dtype=torch.float
+        )
 
         # Ingredient tokens for ratio/amount heads
         ing_tokens = torch.zeros(
@@ -343,6 +359,8 @@ class MultiTaskCollator:
             "ingredient_mask": ing_mask,
             "ingredient_token_ids": ing_tokens,
             "ingredient_token_mask": ing_token_mask,
+            "total_weight": total_weight,
+            "total_weight_mask": total_weight_mask,
         }
 
 

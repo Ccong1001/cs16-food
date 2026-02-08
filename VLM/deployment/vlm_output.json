@@ -4,27 +4,32 @@
     {
       "name": "chicken",
       "note": "cooked, shredded",
-      "ratio": 0.38772159814834595
+      "ratio": 0.4103246033191681
     },
     {
       "name": "mayonnaise",
       "note": "",
-      "ratio": 0.18278935551643372
-    },
-    {
-      "name": "onion",
-      "note": "chopped",
-      "ratio": 0.1256905347108841
-    },
-    {
-      "name": "celery",
-      "note": "chopped",
-      "ratio": 0.1618238389492035
+      "ratio": 0.19344542920589447
     },
     {
       "name": "dill",
       "note": "chopped",
-      "ratio": 0.14197468757629395
+      "ratio": 0.1502513885498047
+    },
+    {
+      "name": "lemon",
+      "note": "finely grated",
+      "ratio": 0.18346372246742249
+    },
+    {
+      "name": "salt",
+      "note": "",
+      "ratio": 0.017653824761509895
+    },
+    {
+      "name": "pepper",
+      "note": "",
+      "ratio": 0.04486103728413582
     }
   ]
 }

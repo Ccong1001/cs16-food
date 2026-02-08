@@ -23,7 +23,7 @@ def vlm_multitask_loss(
     **kwargs,
 ) -> torch.Tensor:
     """
-    Multi-task loss: LM + cuisine/meal/dish + amount (ordinal) + ratio (regression).
+    Multi-task loss: LM + cuisine/meal/dish + amount (ordinal) + ratio (regression) + total_weight (regression).
 
     Expected outputs keys:
       - logits: (B, T, V)
@@ -32,6 +32,7 @@ def vlm_multitask_loss(
       - dish_logits: (B, D)
       - amount_logits: (B, max_ing, K-1) or None
       - ratio_logits: (B, max_ing) or None
+      - total_weight_logits: (B,) or None
 
     Expected labels keys:
       - lm: (B, T) token ids with -100 mask
@@ -42,6 +43,8 @@ def vlm_multitask_loss(
       - ingredient_amount: (B, max_ing) ordinal targets 0..K-1
       - ingredient_ratio: (B, max_ing) float ratios
       - ingredient_mask: (B, max_ing) 1/0 validity mask
+      - total_weight: (B,) float targets
+      - total_weight_mask: (B,) 1/0 validity mask
     """
     if not isinstance(outputs, dict) or not isinstance(labels, dict):
         raise ValueError("vlm_multitask_loss expects dict outputs and dict labels")
@@ -61,6 +64,7 @@ def vlm_multitask_loss(
     lambda_dish = _get_lambda("dish", 1.0)
     lambda_amount = _get_lambda("amount", 1.0)
     lambda_ratio = _get_lambda("ratio", 1.0)
+    lambda_total_weight = _get_lambda("total_weight", 1.0)
 
     # LM loss with optional span weights
     logits = outputs["logits"]
@@ -115,6 +119,20 @@ def vlm_multitask_loss(
         ratio_loss = mse(torch.sigmoid(ratio_logits), ratio_targets)
         ratio_loss = (ratio_loss * ratio_mask).sum() / ratio_mask.sum().clamp(min=1)
         total_loss = total_loss + lambda_ratio * ratio_loss
+
+    # Total weight regression loss (log1p space)
+    total_weight_logits = outputs.get("total_weight_logits")
+    if total_weight_logits is not None and lambda_total_weight != 0:
+        total_weight = labels.get("total_weight")
+        total_weight_mask = labels.get("total_weight_mask")
+        if total_weight is not None and total_weight_mask is not None:
+            tw_target = total_weight.to(device).clamp(min=0)
+            tw_mask = total_weight_mask.to(device)
+            tw_target_log = torch.log1p(tw_target)
+            mse = nn.MSELoss(reduction="none")
+            tw_loss = mse(total_weight_logits, tw_target_log)
+            tw_loss = (tw_loss * tw_mask).sum() / tw_mask.sum().clamp(min=1)
+            total_loss = total_loss + lambda_total_weight * tw_loss
 
     return total_loss
 

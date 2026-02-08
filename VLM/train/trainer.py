@@ -68,7 +68,7 @@ def _log_trainable_params(model: torch.nn.Module) -> None:
             lname = name.lower()
             if "lora" in lname:
                 lora_trainable += n
-            if lname.startswith(("cuisine_head", "meal_head", "dish_head", "amount_head", "ratio_head")):
+            if lname.startswith(("cuisine_head", "meal_head", "dish_head", "amount_head", "ratio_head", "total_weight_head")):
                 head_trainable += n
     logger.info(
         "Params: total=%d, trainable=%d (lora=%d, heads=%d)",
@@ -80,7 +80,7 @@ def _log_trainable_params(model: torch.nn.Module) -> None:
 
 
 def _set_heads_trainable(model: torch.nn.Module, train_heads: bool) -> None:
-    head_tokens = ("cuisine_head", "meal_head", "dish_head", "amount_head", "ratio_head")
+    head_tokens = ("cuisine_head", "meal_head", "dish_head", "amount_head", "ratio_head", "total_weight_head")
     for name, p in model.named_parameters():
         if any(tok in name for tok in head_tokens):
             p.requires_grad = bool(train_heads)
@@ -280,6 +280,7 @@ class WeightedTrainer(Trainer):
         "loss_amount",
         "loss_ratio",
         "loss_hinge",
+        "loss_total_weight",
     )
 
     def create_optimizer(self):
@@ -332,6 +333,7 @@ class WeightedTrainer(Trainer):
             "amount": self.args.loss_lambda_amount,
             "ratio": self.args.loss_lambda_ratio,
             "hinge": self.args.loss_lambda_hinge,
+            "total_weight": getattr(self.args, "loss_lambda_total_weight", 0.0),
         }
         schedule = getattr(self.args, "loss_schedule", None) or []
         if schedule:
@@ -363,6 +365,8 @@ class WeightedTrainer(Trainer):
         ingredient_ratio = inputs.pop("ingredient_ratio")
         ingredient_amount = inputs.pop("ingredient_amount")
         ingredient_mask = inputs.pop("ingredient_mask")
+        total_weight = inputs.pop("total_weight", None)
+        total_weight_mask = inputs.pop("total_weight_mask", None)
 
         outputs = model(**inputs)
         lm_logits = outputs["logits"]
@@ -467,6 +471,17 @@ class WeightedTrainer(Trainer):
                 / mask.sum(dim=1).clamp(min=1)
             ).mean() + hinge_low_sum.mean()
 
+        total_weight_loss = torch.tensor(0.0, device=lm_loss.device)
+        if total_weight is not None and total_weight_mask is not None:
+            tw_logits = outputs.get("total_weight_logits")
+            if tw_logits is not None:
+                tw_target = total_weight.to(lm_loss.device).clamp(min=0)
+                tw_mask = total_weight_mask.to(lm_loss.device)
+                tw_target_log = torch.log1p(tw_target)
+                mse = torch.nn.MSELoss(reduction="none")
+                tw_loss_raw = mse(tw_logits, tw_target_log)
+                total_weight_loss = (tw_loss_raw * tw_mask).sum() / tw_mask.sum().clamp(min=1)
+
         lambdas = self._current_lambdas()
         total_loss = (
             lambdas["lm"] * lm_loss
@@ -476,6 +491,7 @@ class WeightedTrainer(Trainer):
             + lambdas["amount"] * amount_loss
             + lambdas["ratio"] * ratio_loss
             + lambdas["hinge"] * hinge_loss
+            + lambdas["total_weight"] * total_weight_loss
         )
         # 保存各项 loss 便于日志输出
         try:
@@ -489,6 +505,7 @@ class WeightedTrainer(Trainer):
                 "loss_amount": amount_loss.detach().float().item(),
                 "loss_ratio": ratio_loss.detach().float().item(),
                 "loss_hinge": hinge_loss.detach().float().item(),
+                "loss_total_weight": total_weight_loss.detach().float().item(),
             }
         except Exception:
             self._last_component_logs = {}
@@ -557,13 +574,14 @@ class WeightedTrainer(Trainer):
                 logger.warning("Failed to save LoRA adapters: %s", exc)
 
         # Save multitask heads separately
-        head_prefixes = (
-            "cuisine_head",
-            "meal_head",
-            "dish_head",
-            "amount_head",
-            "ratio_head",
-        )
+            head_prefixes = (
+                "cuisine_head",
+                "meal_head",
+                "dish_head",
+                "amount_head",
+                "ratio_head",
+                "total_weight_head",
+            )
         try:
             heads_state = {
                 k: v.detach().cpu()
@@ -733,8 +751,10 @@ def dump_eval_predictions(
                     dish_pred = torch.sigmoid(outputs["dish_logits"]).cpu()
                     amount_logits = outputs.get("amount_logits")
                     ratio_logits = outputs.get("ratio_logits")
+                    total_weight_logits = outputs.get("total_weight_logits")
                     amount_pred = None
                     ratio_pred = None
+                    total_weight_pred = None
                     if amount_logits is not None:
                         amount_probs = torch.sigmoid(amount_logits).cpu()
                         amount_pred = (amount_probs > 0.5).sum(dim=-1)
@@ -742,6 +762,8 @@ def dump_eval_predictions(
                         mask = collated["ingredient_mask"].to(device)
                         ratio_logits_m = ratio_logits.masked_fill(mask == 0, -1e4)
                         ratio_pred = torch.softmax(ratio_logits_m, dim=1).cpu()
+                    if total_weight_logits is not None:
+                        total_weight_pred = torch.expm1(total_weight_logits).clamp(min=0).cpu()
                 for j, seq in enumerate(gen):
                     prompt_len = int(attn_lens[j])
                     gen_tokens = seq[prompt_len:]
@@ -804,6 +826,11 @@ def dump_eval_predictions(
                             )
                             if m > 0
                         ]
+                    if total_weight_pred is not None:
+                        record["total_weight_pred"] = float(total_weight_pred[j].item())
+                    if "total_weight" in collated and "total_weight_mask" in collated:
+                        if float(collated["total_weight_mask"][j].item()) > 0:
+                            record["total_weight_target"] = float(collated["total_weight"][j].item())
                     record = {
                         **record,
                     }
@@ -928,6 +955,7 @@ def main():
     training_args.loss_lambda_amount = args.lambda_amount
     training_args.loss_lambda_ratio = args.lambda_ratio
     training_args.loss_lambda_hinge = args.lambda_hinge
+    training_args.loss_lambda_total_weight = args.lambda_total_weight
     training_args.save_lora_only = args.save_lora_only
     training_args.train_heads = args.train_heads
     # optional phased schedule
