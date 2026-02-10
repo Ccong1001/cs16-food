@@ -20,17 +20,17 @@ trap 'kill $SMI_PID' EXIT
 
 ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} /scratch/li96/zl9731/cs16/vri-food/VLM/train/trainer.py \
   --base_model /scratch/li96/zl9731/cs16/Model/output/VLM/v3-20251222-211237/checkpoint-7633-merged \
-  --init_from_checkpoint /scratch/li96/zl9731/cs16/Model/output/VLM/v6.2 \
-  --dataset $PBS_JOBFS/data/vlm_eval_A_v5.jsonl \
-  --val_dataset $PBS_JOBFS/data/vlm_eval_A_v5.jsonl \
-  --output_dir /scratch/li96/zl9731/cs16/Data/dataAB_v5/output \
+  --init_from_checkpoint /scratch/li96/zl9731/cs16/Model/output/VLM/v6.3 \
+  --dataset $PBS_JOBFS/data/vlm_eval_A_v6.jsonl \
+  --val_dataset $PBS_JOBFS/data/vlm_eval_A_v6.jsonl \
+  --output_dir /scratch/li96/zl9731/cs16/Data/dataAB_v6/output \
   --deepspeed "" \
   --lora_r 32 \
   --lora_alpha 64 \
   --lora_dropout 0.05 \
   --enable_vision_lora true \
   --enable_text_lora true \
-  --eval_dump_predictions /scratch/li96/zl9731/cs16/Data/dataAB_v5/vlm_infer_A_v6.2.jsonl \
+  --eval_dump_predictions /scratch/li96/zl9731/cs16/Data/dataAB_v6/vlm_infer_A_v6.3.jsonl \
   --eval_max_new_tokens 512 \
   --dataloader_num_workers 12 \
   --eval_generate_batch_size 1 \

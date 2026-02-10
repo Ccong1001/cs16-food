@@ -450,8 +450,10 @@ class WeightedTrainer(Trainer):
             denom = target.sum(dim=1, keepdim=True).clamp(min=1e-8)
             target = target / denom
             log_prob = torch.log(ratio_prob + 1e-8)
-            ratio_loss = -(target * log_prob).sum(dim=1)
-            ratio_loss = ratio_loss.mean()
+            per_sample_ratio = -(target * log_prob).sum(dim=1)
+            ratio_supervised = high_mask.sum(dim=1) > 0
+            if ratio_supervised.any():
+                ratio_loss = per_sample_ratio[ratio_supervised].mean()
 
             # Hinge per ingredient
             lower = torch.zeros_like(ratio_prob)
@@ -478,10 +480,13 @@ class WeightedTrainer(Trainer):
             low_sum = (ratio_prob * low_mask).sum(dim=1)
             hinge_low_sum = torch.relu(low_sum - 0.15)
 
-            hinge_loss = (
-                (per_ing_hinge.sum(dim=1) + cap_low.sum(dim=1))
-                / mask.sum(dim=1).clamp(min=1)
-            ).mean() + hinge_low_sum.mean()
+            valid_supervised = mask.sum(dim=1) > 0
+            if valid_supervised.any():
+                per_sample_hinge = (
+                    (per_ing_hinge.sum(dim=1) + cap_low.sum(dim=1))
+                    / mask.sum(dim=1).clamp(min=1)
+                ) + hinge_low_sum
+                hinge_loss = per_sample_hinge[valid_supervised].mean()
 
         total_weight_loss = torch.tensor(0.0, device=lm_loss.device)
         if total_weight is not None and total_weight_mask is not None:
