@@ -364,9 +364,27 @@ def infer_with_ratio(
     else:
         ingredient_items = _parse_ingredients(generated_text)
     
+    # 2.5) 预测 total_weight（与训练一致：log1p 空间 -> expm1）
+    total_weight_pred: Optional[float] = None
+    with torch.no_grad():
+        outputs_base = model.forward(**inputs)
+        total_weight_logits = outputs_base.get("total_weight_logits")
+    if total_weight_logits is not None:
+        total_weight_pred = (
+            torch.expm1(total_weight_logits)
+            .clamp(min=0)
+            .detach()
+            .cpu()
+        )
+        if total_weight_pred.numel() > 0:
+            total_weight_pred = float(total_weight_pred.view(-1)[0].item())
+        else:
+            total_weight_pred = None
+
     result = {
         'text': generated_text,
-        'ingredients': ingredient_items
+        'ingredients': ingredient_items,
+        'total_weight': total_weight_pred,
     }
     
     if not ingredient_items:
@@ -464,18 +482,31 @@ if __name__ == "__main__":
                 name = item.get("name", "") if isinstance(item, dict) else str(item)
                 note = item.get("note", "") if isinstance(item, dict) else ""
                 items.append({"name": name, "note": note, "ratio": float(prob)})
-            print(json.dumps({"ingredients": items}, ensure_ascii=False, indent=2))
+            out_print = {"ingredients": items}
+            if result.get("total_weight") is not None:
+                out_print["total_weight"] = result["total_weight"]
+            print(json.dumps(out_print, ensure_ascii=False, indent=2))
             print("-" * 70)
             if args.output_json:
                 out_obj = {
                     "title": (_extract_json(result["text"]) or {}).get("title", ""),
                     "ingredients": items,
+                    "total_weight": result.get("total_weight"),
                 }
                 Path(args.output_json).parent.mkdir(parents=True, exist_ok=True)
                 with open(args.output_json, "w", encoding="utf-8") as f:
                     json.dump(out_obj, f, ensure_ascii=False, indent=2)
         else:
             print("\n⚠️  Ratio information unavailable")
+            if args.output_json:
+                out_obj = {
+                    "title": (_extract_json(result["text"]) or {}).get("title", ""),
+                    "ingredients": result.get("ingredients", []),
+                    "total_weight": result.get("total_weight"),
+                }
+                Path(args.output_json).parent.mkdir(parents=True, exist_ok=True)
+                with open(args.output_json, "w", encoding="utf-8") as f:
+                    json.dump(out_obj, f, ensure_ascii=False, indent=2)
 
     except FileNotFoundError:
         print(f"✗ 图片不存在: {IMAGE_PATH}")

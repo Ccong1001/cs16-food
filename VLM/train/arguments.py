@@ -65,7 +65,9 @@ class TrainArgs:
     save_lora_only: bool = False
     label_threshold: float = 0.5
     dataloader_num_workers: int = 4
-    train_heads: bool = True
+    train_lm: bool = True
+    train_labels: bool = True
+    train_weight: bool = True
 
 
 @dataclass
@@ -167,10 +169,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of workers for the PyTorch DataLoader.",
     )
     parser.add_argument(
-        "--train_heads",
+        "--train_lm",
         type=str2bool,
-        default=TrainArgs.train_heads,
-        help="Whether to train multitask heads (true/false).",
+        default=TrainArgs.train_lm,
+        help="Whether to train the base LM/vision model (true/false).",
+    )
+    parser.add_argument(
+        "--train_labels",
+        type=str2bool,
+        default=TrainArgs.train_labels,
+        help="Whether to train label heads (cuisine/meal/dish) (true/false).",
+    )
+    parser.add_argument(
+        "--train_weight",
+        type=str2bool,
+        default=TrainArgs.train_weight,
+        help="Whether to train weight heads (amount/ratio/total_weight) (true/false).",
     )
     parser.add_argument(
         "--resume_from_checkpoint",

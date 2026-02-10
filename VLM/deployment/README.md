@@ -9,7 +9,7 @@ This folder contains inference and RAG integration scripts for single-image outp
 
 ## Inference (with ratio + JSON output)
 Set DATASET_IMPL and output JSON:
-```
+```bash
 BASE_DIR=/mnt/hdd_1/home/cs16 \
 DATASET_IMPL=dataset_v5 python3 /mnt/hdd_1/home/cs16/vri-food/VLM/deployment/inference_with_ratio.py \
   /mnt/hdd_1/home/cs16/Model/output/VLM/v5.4-3 \
@@ -18,7 +18,7 @@ DATASET_IMPL=dataset_v5 python3 /mnt/hdd_1/home/cs16/vri-food/VLM/deployment/inf
   --device cuda:0 \
   --output_json /mnt/hdd_1/home/cs16/vri-food/VLM/deployment/vlm_output.json
 ```
-```
+```bash
 DATASET_IMPL=dataset_v5 python3 /scratch/li96/zl9731/cs16/vri-food/VLM/deployment/inference_with_ratio.py \
   /scratch/li96/zl9731/cs16/Model/output/VLM/v6.0 \
   /jobfs/159727058.gadi-pbs/data/images_448/1137_18f837b4bb3d1e400979a7957bd5ece8.jpg \
@@ -40,7 +40,7 @@ Output: `vlm_output.json`
   --kb /mnt/hdd_1/home/cs16/RAG/ausnut_kb_measures.tagged.jsonl -->
 
 <!-- emb_model_dir路径不是/mnt/ssd_2/cs16/model/Qwen3-Embedding-0.6B而是/mnt/ssd_2/cs16/model/Qwen3-Embedding-0.6B？ -->
-```
+```bash
 BASE_DIR=/mnt/hdd_1/home/cs16 \
 python3 /mnt/hdd_1/home/cs16/vri-food/VLM/deployment/run_rag_on_vlm.py \
   --input /mnt/hdd_1/home/cs16/vri-food/VLM/deployment/vlm_output.json \
@@ -50,7 +50,7 @@ python3 /mnt/hdd_1/home/cs16/vri-food/VLM/deployment/run_rag_on_vlm.py \
   --expand_local_model_path /mnt/ssd_2/cs16/model/Qwen3-8B \
   --kb /mnt/hdd_1/home/cs16/RAG/ausnut_kb_measures.tagged.jsonl
 ```
-```
+```bash
 python3 /scratch/li96/zl9731/cs16/vri-food/VLM/deployment/run_rag_on_vlm.py \
   --input /scratch/li96/zl9731/cs16/vri-food/VLM/deployment/vlm_output.json \
   --output /scratch/li96/zl9731/cs16/vri-food/VLM/deployment/rag_output.json \
@@ -60,4 +60,3 @@ python3 /scratch/li96/zl9731/cs16/vri-food/VLM/deployment/run_rag_on_vlm.py \
   --kb /scratch/li96/zl9731/cs16/RAG/ausnut_kb_measures.tagged.jsonl
 ```
 Output: `rag_output.json`
-

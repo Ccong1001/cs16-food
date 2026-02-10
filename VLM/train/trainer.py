@@ -54,6 +54,10 @@ DEFAULT_DATA_PATH = "/mnt/hdd_1/home/cs16/Data/dataAB_v5/vlm_train_AB_v5.jsonl"
 DEFAULT_OUTPUT_DIR = "/mnt/hdd_1/home/cs16/Model/output/VLM"
 DEFAULT_DEEPSPEED = "/mnt/hdd_1/home/cs16/vri-food/VLM/train/deepspeed_zero2.json"
 
+LABEL_HEAD_TOKENS = ("cuisine_head", "meal_head", "dish_head")
+WEIGHT_HEAD_TOKENS = ("amount_head", "ratio_head", "total_weight_head")
+ALL_HEAD_TOKENS = LABEL_HEAD_TOKENS + WEIGHT_HEAD_TOKENS
+
 
 def _log_trainable_params(model: torch.nn.Module) -> None:
     total = 0
@@ -68,7 +72,7 @@ def _log_trainable_params(model: torch.nn.Module) -> None:
             lname = name.lower()
             if "lora" in lname:
                 lora_trainable += n
-            if lname.startswith(("cuisine_head", "meal_head", "dish_head", "amount_head", "ratio_head", "total_weight_head")):
+            if lname.startswith(ALL_HEAD_TOKENS):
                 head_trainable += n
     logger.info(
         "Params: total=%d, trainable=%d (lora=%d, heads=%d)",
@@ -79,11 +83,19 @@ def _log_trainable_params(model: torch.nn.Module) -> None:
     )
 
 
-def _set_heads_trainable(model: torch.nn.Module, train_heads: bool) -> None:
-    head_tokens = ("cuisine_head", "meal_head", "dish_head", "amount_head", "ratio_head", "total_weight_head")
+def _set_head_group_trainable(
+    model: torch.nn.Module, head_tokens: tuple[str, ...], trainable: bool
+) -> None:
     for name, p in model.named_parameters():
         if any(tok in name for tok in head_tokens):
-            p.requires_grad = bool(train_heads)
+            p.requires_grad = bool(trainable)
+
+
+def _freeze_base_model(model: torch.nn.Module) -> None:
+    # Base model (including LoRA) lives under the "model." prefix in MultiTaskVLM.
+    for name, p in model.named_parameters():
+        if name.startswith("model."):
+            p.requires_grad = False
 
 
 def _log_state_dict_prefix(model: torch.nn.Module, max_keys: int = 8) -> None:
@@ -574,14 +586,7 @@ class WeightedTrainer(Trainer):
                 logger.warning("Failed to save LoRA adapters: %s", exc)
 
         # Save multitask heads separately
-            head_prefixes = (
-                "cuisine_head",
-                "meal_head",
-                "dish_head",
-                "amount_head",
-                "ratio_head",
-                "total_weight_head",
-            )
+        head_prefixes = ALL_HEAD_TOKENS
         try:
             heads_state = {
                 k: v.detach().cpu()
@@ -914,8 +919,12 @@ def main():
         except Exception as exc:
             logger.warning("Failed to load multitask heads: %s", exc)
 
-    if not getattr(args, "train_heads", True):
-        _set_heads_trainable(model, False)
+    if not getattr(args, "train_lm", True):
+        _freeze_base_model(model)
+    if not getattr(args, "train_labels", True):
+        _set_head_group_trainable(model, LABEL_HEAD_TOKENS, False)
+    if not getattr(args, "train_weight", True):
+        _set_head_group_trainable(model, WEIGHT_HEAD_TOKENS, False)
 
     _log_trainable_params(model)
 
@@ -957,7 +966,9 @@ def main():
     training_args.loss_lambda_hinge = args.lambda_hinge
     training_args.loss_lambda_total_weight = args.lambda_total_weight
     training_args.save_lora_only = args.save_lora_only
-    training_args.train_heads = args.train_heads
+    training_args.train_lm = args.train_lm
+    training_args.train_labels = args.train_labels
+    training_args.train_weight = args.train_weight
     # optional phased schedule
     try:
         training_args.loss_schedule = json.loads(args.loss_schedule) if args.loss_schedule else []

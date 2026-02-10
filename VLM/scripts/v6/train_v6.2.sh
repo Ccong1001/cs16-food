@@ -30,7 +30,8 @@ ${TORCHRUN} --nproc_per_node=${NPROC_PER_NODE} /scratch/li96/zl9731/cs16/vri-foo
   --gradient_accumulation_steps 2 \
   --enable_vision_lora true \
   --enable_text_lora true \
-  --train_heads false \
+  --train_labels false \
+  --train_weight false \
   --epochs 2 \
   --learning_rate 1e-5 \
   --warmup_ratio 0.1 \
